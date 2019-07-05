@@ -1,7 +1,25 @@
-const es = process.env.BABEL_ENV === 'es';
+/* Set Default */
+process.env.NODE_ENV = process.env.NODE_ENV || 'production';
+
+/* Flags */
+const dev = process.env.NODE_ENV === 'development';
+const test = process.env.NODE_ENV === 'test';
+const prod = process.env.NODE_ENV === 'production';
 
 module.exports = {
-  presets: [['@babel/env', { modules: false }], '@babel/preset-react'],
+  presets: [
+    [
+      '@babel/preset-env',
+      {
+        modules: test ? 'cjs' : false, // Browser: Keep ES Modules Syntax for Webpack Treeshaking
+        loose: false,
+        targets: {
+          ...(test ? { node: 'current' } : {}),
+        },
+      },
+    ],
+    '@babel/preset-react',
+  ],
   plugins: [
     // Stage 0
     '@babel/plugin-proposal-function-bind',
@@ -22,13 +40,19 @@ module.exports = {
     '@babel/plugin-proposal-throw-expressions',
 
     // Stage 3
-    '@babel/plugin-syntax-dynamic-import', // babel needs this for parsing but won't touch the syntax --> webpack will handle
     '@babel/plugin-syntax-import-meta',
     ['@babel/plugin-proposal-class-properties', { loose: false }],
     '@babel/plugin-proposal-json-strings',
 
-    ['@babel/transform-runtime', { useESModules: es }],
+    '@babel/plugin-transform-runtime',
     'react-require',
-    !es && ['@babel/transform-modules-commonjs'],
+    
+    /* @babel/plugin-syntax-dynamic-import
+      babel needs this for parsing but won't touch the syntax,
+      webpack will handle the syntax.
+    */
+    test ? 'dynamic-import-node' : '@babel/plugin-syntax-dynamic-import',
+    (dev || test) && '@babel/plugin-transform-react-jsx-source',
+    prod && 'transform-react-remove-prop-types',
   ].filter(Boolean),
 };
